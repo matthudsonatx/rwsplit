@@ -1,0 +1,86 @@
+= Starter Pack: RWSplit REST API
+
+image:https://img.shields.io/badge/vert.x-4.4.4-purple.svg[link="https://vertx.io"]
+
+RWsplit demonstrates a REST API that sends read and write queries to separate channels. In the simplest single-node database configuration this effects strong role security inside the client application. For distributed environments such as PgBouncer balancing queries across many replicas this delivers access to scalable database performance.
+
+Advanced users may note that sorting read queries from write queries can be difficult or impossible. We are not trying to solve that problem here. This is generally seen as the basic trade-off for designing into a read-write split system.
+
+== Usage
+The sample API functions implement the read/write split. Curl or Google Chrome may be used to exercise the sample URLs.
+
+[source]
+----
+╰─❯ curl http://localhost:8080/api/foo
+{...}
+
+╰─❯
+----
+
+=== Runtime Dependencies
+Java (JDK 17+)
+
+=== Monitoring
+
+The following HTTP paths are used for Prometheus monitoring, and should be blocked from public access:
+
+* /metrics
+
+== Deployment by example
+
+=== Automated Configuration
+Pastum comes with `dev` and `prod` environment templates in `src/main/resources/conf/template.config.json`.
+
+To configure your database in `prod`:
+
+* Set PGCONNECTIONURI
+* Use _jq_ to rewrite the `prod` (or `dev`) stanza of the template to create `src/main/resources/conf/config.json`
+
+[source]
+----
+╰─❯ PGCONNECTIONURI="postgresql://admin:admin@localhost:5432/lillop"
+
+╰─❯ jq ".prod.pgUri=\""$PGCONNECTIONURI"\"" < template.config.json > src/main/resources/conf/config.json
+----
+
+The rest of the configuration variables may be set similarly
+
+=== Manual Configuration
+Copy `template.config.json` to `src/main/resources/conf/config.json` then edit.
+
+=== Execution
+Set CRUNCHY_CFG to `prod` via the process environment or the Java properties. The name of this environment variable may be changed by altering `.appEnv` in config.json.
+
+Examples:
+
+[source]
+----
+╰─❯ java -CRUNCHY_CFG=prod -jar target/rwsplit-1.0.0-SNAPSHOT-fat.jar
+----
+[source]
+----
+╰─❯ CRUNCHY_CFG=prod java -jar target/rwsplit-1.0.0-SNAPSHOT-fat.jar
+----
+
+== Maven Targets
+
+To launch your tests:
+
+[source]
+----
+./mvnw clean test
+----
+
+To package your application:
+
+[source]
+----
+./mvnw clean package
+----
+
+To run your application:
+
+[source]
+----
+./mvnw clean compile exec:java
+----

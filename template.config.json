@@ -1,0 +1,26 @@
+{
+  "appEnv_doc": "appEnv is the field that contains the name of the OS environment variable that is used to select a configuration stanza, e.g. dev or prod.",
+  "appEnv": "CRUNCHY_CFG",
+  "default": {
+    "rwPgURI": "postgres://admin:admin@localhost:5432/apps",
+    "roPgURI": "postgres://appuser:appuser@localhost:5432/apps",
+    "rw_pgMetricsName": "RWpool",
+    "ro_pgMetricsName": "ROpool",
+    "maxPoolSize": 2,
+    "appName": "RWSplit (default)",
+    "httpPort": 8080,
+    "logActivity": true,
+    "listenAddress": "127.0.0.1",
+    "webUrlPrefix": "http://localhost:8080",
+    "webRoute": "/:webkey",
+    "configChannel": "CFG"
+  },
+  "dev": {
+    "appName": "RWSplit (development)"
+  },
+  "prod": {
+    "appName": "RWSplit",
+    "listenAddress": "0.0.0.0",
+    "webUrlPrefix": "https://rwsplit.example.com"
+  }
+}
