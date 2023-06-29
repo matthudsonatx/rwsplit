@@ -7,6 +7,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.micrometer.PrometheusScrapingHandler;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Tuple;
@@ -48,11 +49,54 @@ public class HTTPServerVerticle extends MainVerticle {
   private void startServer(Promise<Void> startPromise, JsonObject cfg) {
     Router router = Router.router(vertx);
 
+    router.route().handler(BodyHandler.create());
     // Setup Prometheus
     router.get("/metrics").handler(PrometheusScrapingHandler.create());
 
     // Install handlers
-    router.get(cfg.getString("webRoute")).handler(getSampleROHandler());
+    //untested
+    router.get("/api/user/:id").handler(rc -> {
+      // Execute with the RO pool
+      roPool.preparedQuery("SELECT * FROM acme_user WHERE id=$1")
+        .execute(Tuple.of(Integer.parseInt(rc.pathParam("id"))))
+        .onSuccess(rs -> {
+          if (rs.size() > 0) {
+            rs.forEach(row -> {
+              rc.end(row.toJson().encode());
+            });
+          } else {
+            rc.end("{}");
+          }
+        })
+        .onFailure(t->{
+          logger.info(t.getMessage());
+          rc.fail(500);
+        });
+    });
+    //untested
+    router.post("/api/user/:id/email").handler(rc -> {
+      // Execute with the RW pool
+      logger.info(rc.queryParams().get("email"));
+      logger.info(rc.pathParams().get("email"));
+      logger.info(rc.get("email"));
+//      logger.info(rc.body().asJsonObject().encode());
+      logger.info(rc.data().toString());
+      logger.info(rc.pathParam("id"));
+      rwPool.preparedQuery("UPDATE acme_user SET email=$1 WHERE id=$2 RETURNING *")
+        .execute(Tuple.of(rc.pathParam("email"),Integer.parseInt(rc.pathParam("id"))))
+        .onSuccess(rs -> {
+          if (rs.size() == 1) {
+            rs.forEach(row -> {
+              rc.end(row.toJson().encode());
+            });
+          } else {
+            rc.end("{}");
+          }
+        })
+        .onFailure(t->{
+          rc.fail(500);
+        });
+    });
 
     // Start web server
     httpServer = vertx.createHttpServer();
@@ -63,24 +107,5 @@ public class HTTPServerVerticle extends MainVerticle {
         startPromise.complete();
         return Future.succeededFuture();
       }).onFailure(startPromise::fail);
-  }
-
-  private Handler<RoutingContext> getSampleROHandler() {
-    return req -> {
-      String webkey = req.pathParam("webkey");
-      roPool.preparedQuery(vertx.getOrCreateContext().config().getString("readQuery")).execute(Tuple.of(webkey))
-        .compose(rowSet -> {
-          if (rowSet.size() > 0) {
-            req.response().putHeader("content-type", "text/plain");
-            req.response().end(rowSet.iterator().next().getString(vertx.getOrCreateContext().config().getString("pasteColumn")));
-          } else {
-            req.response().putHeader("content-type", "text/plain").end("webkey not found");
-          }
-          return Future.succeededFuture();
-        }).onFailure(t -> {
-          if (logger.isDebugEnabled())
-            logger.debug(t.toString());
-        });
-    };
   }
 }

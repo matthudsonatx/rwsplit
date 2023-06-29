@@ -71,13 +71,13 @@ public class MainVerticle extends AbstractVerticle {
 
         // Configure RW connection
         PgConnectOptions rwConnectOptions = PgConnectOptions.fromUri(cfg.getString("rwPgURI"))
-          .setSslMode(SslMode.REQUIRE)
+          .setSslMode(SslMode.PREFER)
           .setMetricsName(cfg.getString("rw_pgMetricsName"))
           .setTrustAll(true);// This is required to disable cert chain validation (we don't have the CA root)
 
         // Configure RO connection
         PgConnectOptions roConnectOptions = PgConnectOptions.fromUri(cfg.getString("roPgURI"))
-          .setSslMode(SslMode.REQUIRE)
+          .setSslMode(SslMode.PREFER)
           .setMetricsName(cfg.getString("ro_pgMetricsName"))
           .setTrustAll(true);// This is required to disable cert chain validation (we don't have the CA root)
 
@@ -85,7 +85,7 @@ public class MainVerticle extends AbstractVerticle {
         rwPool = PgPool.pool(vertx, rwConnectOptions, poolOptions);
 
         // Create RO pool
-        rwPool = PgPool.pool(vertx, roConnectOptions, poolOptions);
+        roPool = PgPool.pool(vertx, roConnectOptions, poolOptions);
 
         // Broadcast config changes
         retriever.listen(configChange -> {
@@ -109,6 +109,8 @@ public class MainVerticle extends AbstractVerticle {
 }
 
   private static JsonObject getCfg(JsonObject fullCfg) {
+    if (fullCfg.getString(fullCfg.getString("appEnv"))==null)
+      return fullCfg.getJsonObject("default");
     return fullCfg.getJsonObject("default").mergeIn(
       fullCfg.getJsonObject(
         fullCfg.getString(
