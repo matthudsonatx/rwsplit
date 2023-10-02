@@ -29,7 +29,7 @@ The following HTTP paths are used for Prometheus monitoring, and should be block
 == Deployment by example
 
 === Automated Configuration
-Pastum comes with `dev` and `prod` environment templates in `src/main/resources/conf/template.config.json`.
+RWSplit comes with `dev` and `prod` environment templates in `src/main/resources/conf/template.config.json`.
 
 To configure your database in `prod`:
 
